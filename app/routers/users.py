@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends
 from sqlmodel import select
 from app.db.session import get_session
 from app.models.user import User
-from app.schemas.user import UserCreate, UserRead
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.schemas.user import UserCreate, UserRead
 
 router = APIRouter(prefix="/users", tags=["users"])
 
