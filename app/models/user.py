@@ -1,8 +1,9 @@
 
 
 from datetime import datetime
+from typing import List
 import uuid
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 
 
 class User(SQLModel, table=True):
@@ -16,3 +17,5 @@ class User(SQLModel, table=True):
     email: str = Field(unique=True, index=True)
     password: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    posts: List["Post"] = Relationship(back_populates="user")
