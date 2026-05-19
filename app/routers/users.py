@@ -1,12 +1,15 @@
 from typing import List
 from uuid import UUID
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.db.session import get_session
+from app.models.post import Post
 from app.models.user import User
+from app.schemas.post import PostRead
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -59,3 +62,8 @@ async def delete_user(user_id: UUID, session: AsyncSession = Depends(get_session
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     await session.delete(user)
     await session.commit()
+
+@router.get('/{userId}/posts', response_model=List[PostRead], status_code=200)
+async def get_posts_by_user(userId: uuid.UUID, session: AsyncSession = Depends(get_session)):
+    res = await session.execute(select(Post).where(Post.user_id == userId))
+    return res.scalars().all()
