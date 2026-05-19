@@ -11,6 +11,7 @@ from app.models.post import Post
 from app.models.user import User
 from app.schemas.post import PostRead
 from app.schemas.user import UserCreate, UserRead, UserUpdate
+from app.utils.post_read import posts_to_read_list
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -66,4 +67,5 @@ async def delete_user(user_id: UUID, session: AsyncSession = Depends(get_session
 @router.get('/{userId}/posts', response_model=List[PostRead], status_code=200)
 async def get_posts_by_user(userId: uuid.UUID, session: AsyncSession = Depends(get_session)):
     res = await session.execute(select(Post).where(Post.user_id == userId))
-    return res.scalars().all()
+    posts = res.scalars().all()
+    return await posts_to_read_list(posts, session)

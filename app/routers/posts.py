@@ -12,6 +12,7 @@ from app.models.post import Post
 from app.schemas.comment import CommentCreate, CommentRead
 from app.schemas.like import LikeCreate, LikeRead
 from app.schemas.post import PostCreate, PostRead, PostReadDetails, PostUpdate
+from app.utils.post_read import posts_to_read_list
 
 router = APIRouter(prefix="/posts", tags=["posts"])
 
@@ -19,7 +20,8 @@ router = APIRouter(prefix="/posts", tags=["posts"])
 @router.get("/", response_model=List[PostRead])
 async def get_posts(session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(Post))
-    return result.scalars().all()
+    posts = result.scalars().all()
+    return await posts_to_read_list(posts, session)
 
 
 
@@ -61,7 +63,7 @@ async def delete_post(post_id: UUID, session: AsyncSession = Depends(get_session
 # Nuevos endpoints videos profe
 
 @router.get('/{post_id}', response_model=PostReadDetails)
-async def get_post_by_id(post_id: str, user_id: str, session: AsyncSession = Depends(get_session)):
+async def get_post_by_id(post_id: str, session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(Post).where(Post.id == post_id))
     post = result.scalar_one_or_none()
 
