@@ -1,17 +1,19 @@
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.db.session import get_session
 from app.models.comment import Comment
+from app.models.image import Image
 from app.models.like import Like
 from app.models.post import Post
 from app.schemas.comment import CommentCreate, CommentRead
 from app.schemas.like import LikeCreate, LikeRead
 from app.schemas.post import PostCreate, PostRead, PostReadDetails, PostUpdate
+from app.services.cloudinary_service import cloudinary_service
 from app.utils.post_read import posts_to_read_list
 
 router = APIRouter(prefix="/posts", tags=["posts"])
@@ -26,12 +28,37 @@ async def get_posts(session: AsyncSession = Depends(get_session)):
 
 
 @router.post("/", response_model=PostRead, status_code=status.HTTP_201_CREATED)
-async def create_post(data: PostCreate, session: AsyncSession = Depends(get_session)):
-    post = Post(**data.model_dump())
+async def create_post(
+    user_id: str = Form(...), 
+    description: str = Form(...), 
+    files: List[UploadFile] = File(default=[]),
+    session: AsyncSession = Depends(get_session)):
+
+    post = Post(description=description, user_id=user_id)
     session.add(post)
     await session.commit()
     await session.refresh(post)
-    return post
+
+    images = []
+    if files and files[0].filename:
+        for file in files:
+            cloud_res = await cloudinary_service.upload_image(
+                file,
+                folder=f"postify/posts/{post.id}"
+            )
+
+            image = Image(
+                url=cloud_res["url"],
+                public_id=cloud_res['public_id'],
+                post_id=post.id
+            )
+
+            session.add(image)
+            images.append(image)
+        await session.commit()
+
+    result = await posts_to_read_list([post], session)
+    return result[0]
 
 
 @router.patch("/{post_id}", response_model=PostRead)
